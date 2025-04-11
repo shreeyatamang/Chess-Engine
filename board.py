@@ -1,4 +1,4 @@
-# board.py
+
 def create_initial_board():
     """
     Creates the initial chessboard setup.
@@ -11,7 +11,7 @@ def create_initial_board():
     Q - Queen
     K - King
     """
-    # Create an 8x8 grid
+    # Creating an 8x8 grid
     board = [
         ["bR", "bN", "bB", "bQ", "bK", "bB", "bN", "bR"],
         ["bP", "bP", "bP", "bP", "bP", "bP", "bP", "bP"],

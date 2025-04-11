@@ -1,7 +1,9 @@
 import pygame
+from tkinter import Tk
 import sys
-from board import create_initial_board  # Import only the necessary function
+from board import create_initial_board  
 from board import move_piece
+from gui import ChessGUI
 
 
 # Constants
@@ -10,7 +12,7 @@ ROWS, COLS = 8, 8
 SQUARE_SIZE = WIDTH // COLS
 IMAGES = {}
 
-# Load images for pieces
+#  images for pieces
 def load_images():
     pieces = ['wP', 'wR', 'wN', 'wB', 'wQ', 'wK',
               'bP', 'bR', 'bN', 'bB', 'bQ', 'bK']
@@ -18,7 +20,7 @@ def load_images():
         image = pygame.image.load(f'images/{piece}.png')  # Ensure the images exist in the 'images' folder
         IMAGES[piece] = pygame.transform.scale(image, (SQUARE_SIZE, SQUARE_SIZE))
 
-# Draw the chessboard and pieces
+# Drawing the chessboard and pieces
 def draw_board(win, board):
     colors = [pygame.Color(240, 217, 181), pygame.Color(181, 136, 99)]
     for r in range(ROWS):
@@ -45,7 +47,7 @@ def main():
     load_images()
 
     selected_square = None
-    is_white_turn = True  # White goes first
+    is_white_turn = True  
     running = True
 
     while running:
@@ -82,6 +84,19 @@ def main():
 
     pygame.quit()
     sys.exit()
+    
+
+
+def run_chess_game():
+    root = tk.Tk()
+    gui = ChessGUI(root)  # Initialize the ChessGUI
+    root.mainloop()
+
+
+
 
 if __name__ == "__main__":
-    main()
+    root = Tk()
+    gui = ChessGUI(root)
+    root.mainloop()
+
