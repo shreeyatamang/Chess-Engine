@@ -3,11 +3,12 @@ from tkinter import messagebox
 import chess
 import os
 from PIL import Image, ImageTk
+from ai import find_best_move, find_random_move  # Import AI logic
 
 class ChessGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("Chess Game with Timer")
+        self.root.title("Chess Game with AI and Timer")
         self.board = chess.Board()
 
         self.square_size = 64
@@ -15,12 +16,22 @@ class ChessGUI:
         self.canvas.pack()
 
         self.turn = 'white'
-        self.time_left_white = 60
-        self.time_left_black = 60
-        self.timer_running_white = False
-        self.timer_running_black = False
-        self.timer_label = tk.Label(root, text="White's Turn | Time: 60s", font=('Arial', 16))
-        self.timer_label.pack()
+        self.difficulty = 'Intermediate'  # Default difficulty level
+        self.time_left_white = 10 * 60  # 10 minutes in seconds
+        self.time_left_black = 10 * 60  # 10 minutes in seconds
+        self.timer_running = False
+
+        # Timer labels for White and Black
+        self.white_timer_label = tk.Label(root, text="White's Time: 10:00", font=('Arial', 16), fg="black")
+        self.black_timer_label = tk.Label(root, text="Black's Time: 10:00", font=('Arial', 16), fg="black")
+        self.white_timer_label.place(x=10, y=520)  # Position near the White side
+        self.black_timer_label.place(x=10, y=10)   # Position near the Black side
+
+        # Difficulty selection
+        difficulty_label = tk.Label(root, text="Select Difficulty:", font=('Arial', 14))
+        difficulty_label.pack()
+        difficulty_menu = tk.OptionMenu(root, tk.StringVar(value="Intermediate"), "Basic", "Intermediate", "Hard", command=self.set_difficulty)
+        difficulty_menu.pack()
 
         self.selected_square = None
         self.highlight_squares = []  # stores squares to highlight
@@ -69,6 +80,23 @@ class ChessGUI:
                     if image_key in self.piece_images:
                         self.canvas.create_image(x1, y1, anchor="nw", image=self.piece_images[image_key])
 
+    def set_difficulty(self, difficulty):
+        """
+        Set the difficulty level for the AI.
+        """
+        self.difficulty = difficulty
+
+    def get_ai_move(self):
+        """
+        Get the AI's move based on the selected difficulty level.
+        """
+        if self.difficulty == 'Basic':
+            return find_random_move(self.board)
+        elif self.difficulty == 'Intermediate':
+            return find_best_move(self.board, depth=2)
+        elif self.difficulty == 'Hard':
+            return find_best_move(self.board, depth=4)
+
     def on_click(self, event):
         col = event.x // self.square_size
         row = 7 - (event.y // self.square_size)
@@ -83,7 +111,17 @@ class ChessGUI:
             move = chess.Move(self.selected_square, square)
             if move in self.board.legal_moves:
                 self.board.push(move)
+                self.check_game_over()  # Check if the game is over after the player's move
                 self.switch_turn()
+
+                # AI's turn
+                if self.turn == 'black':  # Assuming AI plays as Black
+                    best_move = self.get_ai_move()
+                    if best_move:
+                        self.board.push(best_move)
+                        self.check_game_over()  # Check if the game is over after the AI's move
+                        self.switch_turn()
+
             self.selected_square = None
             self.highlight_squares = []
 
@@ -95,36 +133,59 @@ class ChessGUI:
         self.start_turn_timer()
 
     def start_turn_timer(self):
-        # Set timer depending on the current player's turn
-        if self.turn == 'white':
-            self.timer_running_white = True
-            self.timer_running_black = False
-            self.time_left_white = 30  # Reset to 30 seconds for each turn
-        else:
-            self.timer_running_white = False
-            self.timer_running_black = True
-            self.time_left_black = 30
-
-        self.update_timer()
+        """
+        Start the timer for the current player's turn.
+        Ensure the timer is not restarted unnecessarily.
+        """
+        if not self.timer_running:  # Prevent multiple timers from running
+            self.timer_running = True
+            self.update_timer()
 
     def update_timer(self):
-        if self.timer_running_white:
-            self.timer_label.config(text=f"White's Turn | Time: {self.time_left_white}s")
-            if self.time_left_white <= 0:
-                self.timer_running_white = False
-                self.end_game("Black")
-            else:
+        """
+        Update the timer every second for the active player.
+        """
+        if self.timer_running:
+            if self.turn == 'white':
                 self.time_left_white -= 1
-                self.root.after(1000, self.update_timer)
-
-        elif self.timer_running_black:
-            self.timer_label.config(text=f"Black's Turn | Time: {self.time_left_black}s")
-            if self.time_left_black <= 0:
-                self.timer_running_black = False
-                self.end_game("White")
+                minutes, seconds = divmod(self.time_left_white, 60)
+                self.white_timer_label.config(text=f"White's Time: {minutes}:{seconds:02d}")
             else:
                 self.time_left_black -= 1
+                minutes, seconds = divmod(self.time_left_black, 60)
+                self.black_timer_label.config(text=f"Black's Time: {minutes}:{seconds:02d}")
+
+            # Check if either timer has run out
+            if self.time_left_white <= 0:
+                self.timer_running = False
+                self.end_game("Black")
+            elif self.time_left_black <= 0:
+                self.timer_running = False
+                self.end_game("White")
+            else:
+                # Schedule the next timer update after 1 second
                 self.root.after(1000, self.update_timer)
+
+    def check_game_over(self):
+        """
+        Check if the game is over due to checkmate, stalemate, or other conditions.
+        """
+        if self.board.is_checkmate():
+            winner = "White" if self.board.turn == chess.BLACK else "Black"
+            messagebox.showinfo("Game Over", f"Checkmate! {winner} wins!")
+            self.root.quit()
+        elif self.board.is_stalemate():
+            messagebox.showinfo("Game Over", "Stalemate! The game is a draw!")
+            self.root.quit()
+        elif self.board.is_insufficient_material():
+            messagebox.showinfo("Game Over", "Draw due to insufficient material!")
+            self.root.quit()
+        elif self.board.is_seventyfive_moves():
+            messagebox.showinfo("Game Over", "Draw due to 75-move rule!")
+            self.root.quit()
+        elif self.board.is_fivefold_repetition():
+            messagebox.showinfo("Game Over", "Draw due to fivefold repetition!")
+            self.root.quit()
 
     def end_game(self, winner):
         # Handle game over due to time running out

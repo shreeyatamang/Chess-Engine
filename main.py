@@ -1,10 +1,10 @@
 import pygame
-from tkinter import Tk
+import time
 import sys
-from board import create_initial_board  
+from tkinter import Tk
+from board import create_initial_board
 from board import move_piece
 from gui import ChessGUI
-
 
 # Constants
 WIDTH, HEIGHT = 512, 512
@@ -12,7 +12,7 @@ ROWS, COLS = 8, 8
 SQUARE_SIZE = WIDTH // COLS
 IMAGES = {}
 
-#  images for pieces
+# Images for pieces
 def load_images():
     pieces = ['wP', 'wR', 'wN', 'wB', 'wQ', 'wK',
               'bP', 'bR', 'bN', 'bB', 'bQ', 'bK']
@@ -47,13 +47,41 @@ def main():
     load_images()
 
     selected_square = None
-    is_white_turn = True  
+    is_white_turn = True
     running = True
+
+    # Timer setup
+    white_time = 10 * 60  # 10 minutes in seconds
+    black_time = 10 * 60  # 10 minutes in seconds
+    turn_start_time = time.time()  # Track the start time of the current turn
 
     while running:
         draw_board(win, board)
         pygame.display.flip()
         clock.tick(60)
+
+        # Update the timer for the current player
+        current_time = time.time()
+        elapsed_time = current_time - turn_start_time
+        if is_white_turn:
+            white_time -= elapsed_time
+        else:
+            black_time -= elapsed_time
+        turn_start_time = current_time  # Reset the turn start time
+
+        # Display remaining time
+        print(f"White's remaining time: {int(white_time // 60)}:{int(white_time % 60):02d}")
+        print(f"Black's remaining time: {int(black_time // 60)}:{int(black_time % 60):02d}")
+
+        # Check if time is up
+        if white_time <= 0:
+            print("White's time is up! Black wins!")
+            running = False
+            break
+        if black_time <= 0:
+            print("Black's time is up! White wins!")
+            running = False
+            break
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -84,19 +112,13 @@ def main():
 
     pygame.quit()
     sys.exit()
-    
-
 
 def run_chess_game():
-    root = tk.Tk()
+    root = Tk()
     gui = ChessGUI(root)  # Initialize the ChessGUI
     root.mainloop()
-
-
-
 
 if __name__ == "__main__":
     root = Tk()
     gui = ChessGUI(root)
     root.mainloop()
-
